@@ -1,0 +1,40 @@
+# Frontend Dependencies
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+
+# Next.js local environment configs
+frontend/.env*.local
+
+# Backend Virtual Environments
+backend/venv/
+backend/env/
+backend/ENV/
+backend/bin/
+backend/lib/
+backend/share/
+
+# Python caching & testing
+backend/__pycache__/
+backend/*.pyc
+backend/*.pyo
+backend/*.pyd
+backend/.pytest_cache/
+backend/.coverage
+backend/htmlcov/
+
+# Large Model Weights (Optional: Keep commented out if you want to push weights to GitHub under 100MB limit, 
+# or uncomment if you prefer to upload them directly to Hugging Face Spaces via LFS/HF UI)
+# backend/model/*.pt
+
+# System / IDE files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

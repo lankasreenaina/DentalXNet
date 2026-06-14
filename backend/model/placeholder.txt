@@ -1,0 +1,11 @@
+Place your final trained RT-DETR model weights file (best.pt) here.
+File name must be: best.pt
+
+This file was originally located at:
+/content/drive/MyDrive/DentalXNet-Det/experiments/transformer_rtdetr_model/weights/best.pt
+
+You should also place your YOLOv8s baseline model weights file (yolov8s_best.pt) here:
+File name must be: yolov8s_best.pt
+This file was originally located at:
+/content/drive/MyDrive/DentalXNet-Det/experiments/baseline_v2_yolov8s/weights/best.pt
+(Or whichever YOLOv8s optimized weight file you wish to compare against).
