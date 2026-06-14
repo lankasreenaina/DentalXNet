@@ -34,6 +34,14 @@ const CLASS_COLORS = {
 export default function Home() {
   // Navigation Tabs: 'landing', 'demo', 'records', 'journey'
   const [activeTab, setActiveTab] = useState("landing");
+  
+  // Mobile responsive layout states
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // Automatically close drawer on tab selection
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [activeTab]);
 
   // Patient / Inference state
   const [patientName, setPatientName] = useState("");
@@ -434,19 +442,13 @@ export default function Home() {
   };
 
   return (
-    <div className="app-container" style={{ display: "flex", minHeight: "100vh" }}>
+    <div className="app-container">
       
-      {/* 1. SIDEBAR NAVIGATION */}
-      <aside className="no-print" style={{
-        width: "var(--sidebar-width)",
-        backgroundColor: "var(--bg-sidebar)",
-        borderRight: "1px solid var(--border-color)",
-        padding: "24px 16px",
-        display: "flex",
-        flexDirection: "column",
-        gap: "32px",
-        zIndex: 100
-      }}>
+      {/* 1. MOBILE BACKDROP (closes sidebar drawer on click) */}
+      <div className={`mobile-backdrop ${mobileMenuOpen ? "visible" : ""}`} onClick={() => setMobileMenuOpen(false)}></div>
+
+      {/* 2. SIDEBAR NAVIGATION */}
+      <aside className={`no-print sidebar ${mobileMenuOpen ? "open" : ""}`}>
         {/* Brand Logo */}
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -561,13 +563,25 @@ export default function Home() {
       </aside>
 
       {/* MAIN VIEW AREA */}
-      <main style={{
-        flex: 1,
-        backgroundColor: "var(--bg-main)",
-        display: "flex",
-        flexDirection: "column",
-        overflowY: "auto"
-      }}>
+      <main className="main-content">
+        
+        {/* MOBILE RESPONSIVE HEADER */}
+        <header className="mobile-header no-print">
+          <button className="mobile-menu-btn" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+            </svg>
+            <h1 style={{ fontSize: "16px", fontWeight: "bold" }}>Dental<span style={{ color: "var(--accent-cyan)" }}>XNet</span></h1>
+          </div>
+          <div style={{ width: "36px" }}></div>
+        </header>
         
         {/* E. RESULTS GALLERY TAB */}
         {activeTab === "gallery" && (
@@ -580,7 +594,7 @@ export default function Home() {
               </p>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(500px, 1fr))", gap: "28px" }}>
+            <div className="gallery-grid">
               
               {/* Case 1: Implant Detection */}
               <div className="glass-panel" style={{ overflow: "hidden", display: "flex", flexDirection: "column" }}>
@@ -838,7 +852,7 @@ export default function Home() {
             {/* PLATFORM FEATURES */}
             <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
               <h3 style={{ fontSize: "24px", fontWeight: "bold" }}>Platform Capabilities</h3>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "24px" }}>
+              <div className="capabilities-grid">
                 
                 <div className="glass-panel" style={{ padding: "24px", display: "flex", gap: "16px" }}>
                   <div style={iconContainerStyle}>
@@ -922,18 +936,10 @@ export default function Home() {
 
         {/* B. DEMO TAB (CLINICAL INFERENCE ENGINE) */}
         {activeTab === "demo" && (
-          <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+          <div className="inference-container">
             
             {/* Patient Form & Controls Sidebar */}
-            <div className="no-print" style={{
-              width: "320px",
-              borderRight: "1px solid var(--border-color)",
-              padding: "20px",
-              display: "flex",
-              flexDirection: "column",
-              gap: "24px",
-              overflowY: "auto"
-            }}>
+            <div className="no-print inference-panel-sidebar">
               
               {/* Patient details section */}
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -1056,7 +1062,7 @@ export default function Home() {
             </div>
 
             {/* Canvas Imaging Workspace */}
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", height: "100%", position: "relative" }}>
+            <div className="inference-workspace">
               
               {/* Workspace Top Toolbar */}
               <div className="no-print" style={{
@@ -1244,7 +1250,7 @@ export default function Home() {
 
                 {/* Render Canvas Elements (Dual YOLO vs RT-DETR Side-by-Side View) */}
                 {selectedImage && !isAnalyzing && compareMode && (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", width: "100%", height: "100%", alignItems: "center" }}>
+                  <div className="canvas-scans-layout">
                     
                     {/* Left Frame: YOLOv8 Baseline */}
                     <div style={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "center" }}>
@@ -1481,87 +1487,89 @@ export default function Home() {
                   <p style={{ fontSize: "12px", marginTop: "4px" }}>Save a case from the Clinical Inference tab to populate logs here.</p>
                 </div>
               ) : (
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
-                  <thead>
-                    <tr style={{ background: "rgba(15, 23, 42, 0.4)", borderBottom: "1px solid var(--border-color)", textAlign: "left" }}>
-                      <th style={{ padding: "14px 16px" }}>Patient Name</th>
-                      <th>Age / Gender</th>
-                      <th>Date Logged</th>
-                      <th>Detections Summary</th>
-                      <th style={{ padding: "14px 16px", textAlign: "right" }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {records.map((r, index) => (
-                      <tr key={r.id} style={{ borderBottom: index < records.length - 1 ? "1px solid var(--border-color)" : "none" }}>
-                        <td style={{ padding: "14px 16px", fontWeight: "bold", color: "var(--text-primary)" }}>{r.patientName}</td>
-                        <td style={{ color: "var(--text-secondary)" }}>{r.patientAge} Y / {r.patientGender}</td>
-                        <td style={{ color: "var(--text-muted)" }}>{r.date}</td>
-                        <td>
-                          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-                            {Array.from(new Set(r.detections.map(d => d.class))).map(cls => (
-                              <span key={cls} style={{
-                                padding: "2px 6px",
-                                background: CLASS_COLORS[cls] || "rgba(255,255,255,0.05)",
-                                borderRadius: "4px",
-                                fontSize: "10px",
-                                color: "#ffffff",
-                                fontWeight: "bold"
-                              }}>
-                                {cls}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-                        <td style={{ padding: "14px 16px", textAlign: "right" }}>
-                          <button 
-                            onClick={() => {
-                              // Load case back into inference tab for viewing
-                              setSelectedImage(r.image);
-                              setPatientName(r.patientName);
-                              setPatientAge(r.patientAge);
-                              setPatientGender(r.patientGender);
-                              setClinicalNotes(r.clinicalNotes);
-                              setAnalysisResult({ status: "success", detections: r.detections });
-                              setActiveTab("demo");
-                            }}
-                            style={{
-                              padding: "4px 10px",
-                              background: "rgba(6, 182, 212, 0.1)",
-                              border: "1px solid var(--accent-cyan)",
-                              borderRadius: "6px",
-                              color: "var(--accent-cyan)",
-                              fontSize: "11px",
-                              fontWeight: "bold",
-                              marginRight: "8px"
-                            }}
-                          >
-                            View scan
-                          </button>
-                          <button 
-                            onClick={() => {
-                              const updated = records.filter(item => item.id !== r.id);
-                              setRecords(updated);
-                              localStorage.setItem("dentalxnet_records", JSON.stringify(updated));
-                              calculateAnalytics(updated);
-                            }}
-                            style={{
-                              padding: "4px 10px",
-                              background: "rgba(239, 68, 68, 0.1)",
-                              border: "1px solid var(--error)",
-                              borderRadius: "6px",
-                              color: "var(--error)",
-                              fontSize: "11px",
-                              fontWeight: "bold"
-                            }}
-                          >
-                            Delete
-                          </button>
-                        </td>
+                <div className="table-container" style={{ border: "none", borderRadius: 0 }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+                    <thead>
+                      <tr style={{ background: "rgba(15, 23, 42, 0.4)", borderBottom: "1px solid var(--border-color)", textAlign: "left" }}>
+                        <th style={{ padding: "14px 16px" }}>Patient Name</th>
+                        <th>Age / Gender</th>
+                        <th>Date Logged</th>
+                        <th>Detections Summary</th>
+                        <th style={{ padding: "14px 16px", textAlign: "right" }}>Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {records.map((r, index) => (
+                        <tr key={r.id} style={{ borderBottom: index < records.length - 1 ? "1px solid var(--border-color)" : "none" }}>
+                          <td style={{ padding: "14px 16px", fontWeight: "bold", color: "var(--text-primary)" }}>{r.patientName}</td>
+                          <td style={{ color: "var(--text-secondary)" }}>{r.patientAge} Y / {r.patientGender}</td>
+                          <td style={{ color: "var(--text-muted)" }}>{r.date}</td>
+                          <td>
+                            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+                              {Array.from(new Set(r.detections.map(d => d.class))).map(cls => (
+                                <span key={cls} style={{
+                                  padding: "2px 6px",
+                                  background: CLASS_COLORS[cls] || "rgba(255,255,255,0.05)",
+                                  borderRadius: "4px",
+                                  fontSize: "10px",
+                                  color: "#ffffff",
+                                  fontWeight: "bold"
+                                }}>
+                                  {cls}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                          <td style={{ padding: "14px 16px", textAlign: "right" }}>
+                            <button 
+                              onClick={() => {
+                                // Load case back into inference tab for viewing
+                                setSelectedImage(r.image);
+                                setPatientName(r.patientName);
+                                setPatientAge(r.patientAge);
+                                setPatientGender(r.patientGender);
+                                setClinicalNotes(r.clinicalNotes);
+                                setAnalysisResult({ status: "success", detections: r.detections });
+                                setActiveTab("demo");
+                              }}
+                              style={{
+                                padding: "4px 10px",
+                                background: "rgba(6, 182, 212, 0.1)",
+                                border: "1px solid var(--accent-cyan)",
+                                borderRadius: "6px",
+                                color: "var(--accent-cyan)",
+                                fontSize: "11px",
+                                fontWeight: "bold",
+                                marginRight: "8px"
+                              }}
+                            >
+                              View scan
+                            </button>
+                            <button 
+                              onClick={() => {
+                                const updated = records.filter(item => item.id !== r.id);
+                                setRecords(updated);
+                                localStorage.setItem("dentalxnet_records", JSON.stringify(updated));
+                                calculateAnalytics(updated);
+                              }}
+                              style={{
+                                padding: "4px 10px",
+                                background: "rgba(239, 68, 68, 0.1)",
+                                border: "1px solid var(--error)",
+                                borderRadius: "6px",
+                                color: "var(--error)",
+                                fontSize: "11px",
+                                fontWeight: "bold"
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
 
@@ -1582,30 +1590,32 @@ export default function Home() {
             {/* Model Comparison Table */}
             <div className="glass-panel" style={{ padding: "24px" }}>
               <h3 style={{ fontSize: "18px", fontWeight: "bold", marginBottom: "16px" }}>Quantitative Benchmark Grid</h3>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
-                <thead>
-                  <tr style={{ borderBottom: "2px solid var(--border-color)", textAlign: "left", color: "var(--text-secondary)" }}>
-                    <th style={{ padding: "10px 0" }}>Architecture Model</th>
-                    <th>Precision</th>
-                    <th>Recall</th>
-                    <th>mAP@0.5</th>
-                    <th>mAP@0.5-0.95</th>
-                    <th>GPU Speed</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {modelBenchmarks.map((b, idx) => (
-                    <tr key={idx} style={{ borderBottom: idx < modelBenchmarks.length - 1 ? "1px solid var(--border-color)" : "none" }}>
-                      <td style={{ padding: "14px 0", fontWeight: "bold", color: idx === 3 ? "var(--accent-cyan)" : "var(--text-primary)" }}>{b.model}</td>
-                      <td style={{ fontFamily: "monospace" }}>{b.precision.toFixed(3)}</td>
-                      <td style={{ fontFamily: "monospace" }}>{b.recall.toFixed(3)}</td>
-                      <td style={{ fontFamily: "monospace", fontWeight: "bold" }}>{b.map50.toFixed(3)}</td>
-                      <td style={{ fontFamily: "monospace" }}>{b.map5095.toFixed(3)}</td>
-                      <td style={{ color: "var(--text-secondary)" }}>{b.speed}</td>
+              <div className="table-container" style={{ border: "none", borderRadius: 0 }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+                  <thead>
+                    <tr style={{ borderBottom: "2px solid var(--border-color)", textAlign: "left", color: "var(--text-secondary)" }}>
+                      <th style={{ padding: "10px 0" }}>Architecture Model</th>
+                      <th>Precision</th>
+                      <th>Recall</th>
+                      <th>mAP@0.5</th>
+                      <th>mAP@0.5-0.95</th>
+                      <th>GPU Speed</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {modelBenchmarks.map((b, idx) => (
+                      <tr key={idx} style={{ borderBottom: idx < modelBenchmarks.length - 1 ? "1px solid var(--border-color)" : "none" }}>
+                        <td style={{ padding: "14px 0", fontWeight: "bold", color: idx === 3 ? "var(--accent-cyan)" : "var(--text-primary)" }}>{b.model}</td>
+                        <td style={{ fontFamily: "monospace" }}>{b.precision.toFixed(3)}</td>
+                        <td style={{ fontFamily: "monospace" }}>{b.recall.toFixed(3)}</td>
+                        <td style={{ fontFamily: "monospace", fontWeight: "bold" }}>{b.map50.toFixed(3)}</td>
+                        <td style={{ fontFamily: "monospace" }}>{b.map5095.toFixed(3)}</td>
+                        <td style={{ color: "var(--text-secondary)" }}>{b.speed}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             {/* Project Journey Timelines */}

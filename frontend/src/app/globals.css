@@ -128,3 +128,219 @@ input:focus, select:focus, textarea:focus {
     color: #000000 !important;
   }
 }
+
+/* Responsive Layout and Component CSS Classes */
+
+.app-container {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.sidebar {
+  width: var(--sidebar-width);
+  background-color: var(--bg-sidebar);
+  border-right: 1px solid var(--border-color);
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  z-index: 100;
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+}
+
+.main-content {
+  flex: 1;
+  background-color: var(--bg-main);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  min-width: 0; /* Prevents layout blowout from flex children */
+}
+
+/* Mobile Header (Hidden on Desktop) */
+.mobile-header {
+  display: none;
+  height: 60px;
+  background-color: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0 20px;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 90;
+}
+
+.mobile-menu-btn {
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.05);
+}
+
+.mobile-menu-btn:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+/* Backdrop for Mobile Sidebar */
+.mobile-backdrop {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 95;
+}
+
+/* Scrollable wrapper for data grids and tables */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+}
+
+.table-container table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px; /* Forces scrollbar on small viewports */
+}
+
+/* Responsive grid for the results gallery */
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+  gap: 28px;
+}
+
+/* Responsive grid for Capabilties cap card lists */
+.capabilities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+/* Responsive side-by-side workspace */
+.inference-container {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.inference-panel-sidebar {
+  width: 320px;
+  border-right: 1px solid var(--border-color);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.inference-workspace {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+  min-width: 0;
+}
+
+.canvas-scans-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+}
+
+/* Media Queries for Viewports < 768px (Mobile & Tablets) */
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column;
+  }
+
+  /* Hamburger header becomes visible */
+  .mobile-header {
+    display: flex;
+  }
+
+  /* Sidebar becomes a sliding drawer */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: -260px;
+    width: 260px;
+    height: 100vh;
+    box-shadow: 5px 0 25px rgba(0, 0, 0, 0.5);
+    transform: translateX(0);
+    z-index: 100;
+  }
+
+  .sidebar.open {
+    transform: translateX(260px);
+  }
+
+  /* Show backdrop when sidebar open */
+  .mobile-backdrop.visible {
+    display: block;
+  }
+
+  /* Main content scrolls normally */
+  .main-content {
+    height: auto;
+    overflow-y: visible;
+  }
+
+  /* Gallery grid stacks vertically on small viewports */
+  .gallery-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  /* Platform Capabilities card stack */
+  .capabilities-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Clinical Inference panel stacks vertically */
+  .inference-container {
+    flex-direction: column;
+    overflow-y: visible;
+    height: auto;
+  }
+
+  .inference-panel-sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+    overflow-y: visible;
+    height: auto;
+  }
+
+  .inference-workspace {
+    height: auto;
+    overflow-y: visible;
+  }
+
+  /* Dual canvas comparison layout stacks vertically */
+  .canvas-scans-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    gap: 24px;
+    height: auto;
+  }
+}
