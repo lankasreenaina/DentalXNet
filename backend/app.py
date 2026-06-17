@@ -1,6 +1,8 @@
 import os
 import io
 import logging
+import base64
+import cv2
 from fastapi import FastAPI, File, UploadFile, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
@@ -97,7 +99,8 @@ def health_check():
 @app.post("/analyze")
 async def analyze_scan(
     file: UploadFile = File(...),
-    model: str = Query("rtdetr", enum=["rtdetr", "yolov8"])
+    model: str = Query("rtdetr", enum=["rtdetr", "yolov8"]),
+    conf: float = Query(0.25, ge=0.1, le=0.9)
 ):
     try:
         # Read uploaded image bytes
@@ -130,15 +133,14 @@ async def analyze_scan(
             # Convert PIL Image to numpy array for ultralytics
             img_arr = np.array(image)
             
-            # Run inference with a low confidence threshold (0.1)
-            # This allows the frontend slider to filter dynamically
-            results = active_model.predict(img_arr, conf=0.1, verbose=False)
+            # Run inference with user-specified confidence
+            results = active_model.predict(img_arr, conf=conf, verbose=False)
             
             detections = []
             for box in results[0].boxes:
                 # Bounding box coordinates
                 x1, y1, x2, y2 = box.xyxy[0].tolist()
-                conf = float(box.conf[0])
+                c = float(box.conf[0])
                 cls_id = int(box.cls[0])
                 
                 # Retrieve class name
@@ -147,9 +149,58 @@ async def analyze_scan(
                 # Format to our uniform list
                 detections.append({
                     "class": class_name,
-                    "confidence": round(conf, 4),
+                    "confidence": round(c, 4),
                     "bbox": [int(x1), int(y1), int(x2), int(y2)]
                 })
+
+            # Helper to convert PIL Image to base64
+            def to_base64(pil_img):
+                buffered = io.BytesIO()
+                pil_img.save(buffered, format="JPEG", quality=85)
+                img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
+                return f"data:image/jpeg;base64,{img_str}"
+
+            # 1. Generate Plotted Bounding Boxes Image
+            try:
+                plotted_arr = results[0].plot(line_width=2)
+                plotted_pil = Image.fromarray(plotted_arr)
+                image_with_boxes_b64 = to_base64(plotted_pil)
+            except Exception as plot_err:
+                logger.error(f"Failed to plot bounding boxes: {plot_err}")
+                image_with_boxes_b64 = ""
+
+            # 2. Generate JET Heatmap Image (OpenCV style matching Colab notebook)
+            try:
+                heatmap = np.zeros(img_arr.shape[:2], dtype=np.float32)
+                
+                # Accumulate box hits
+                for box in results[0].boxes.xyxy.cpu().numpy():
+                    bx1, by1, bx2, by2 = map(int, box)
+                    heatmap[by1:by2, bx1:bx2] += 1
+                
+                if heatmap.max() != 0:
+                    heatmap = heatmap / heatmap.max()
+                    
+                # Apply Gaussian Blur (51, 51) matching Colab
+                heatmap = cv2.GaussianBlur(heatmap, (51, 51), 0)
+                
+                if heatmap.max() != 0:
+                    heatmap = heatmap / heatmap.max()
+                    
+                # Map to JET colormap (returns BGR)
+                heatmap_color = cv2.applyColorMap(np.uint8(255 * heatmap), cv2.COLORMAP_JET)
+                
+                # Convert heatmap color to RGB
+                heatmap_color_rgb = cv2.cvtColor(heatmap_color, cv2.COLOR_BGR2RGB)
+                
+                # Blend: 60% original image + 40% heatmap color
+                overlay = cv2.addWeighted(img_arr, 0.6, heatmap_color_rgb, 0.4, 0)
+                
+                heatmap_pil = Image.fromarray(overlay)
+                image_with_heatmap_b64 = to_base64(heatmap_pil)
+            except Exception as hm_err:
+                logger.error(f"Failed to generate heatmap image: {hm_err}")
+                image_with_heatmap_b64 = ""
                 
             return {
                 "status": "success",
@@ -157,7 +208,9 @@ async def analyze_scan(
                 "model_type": model,
                 "width": width,
                 "height": height,
-                "detections": detections
+                "detections": detections,
+                "image_with_boxes": image_with_boxes_b64,
+                "image_with_heatmap": image_with_heatmap_b64
             }
             
     except Exception as e:

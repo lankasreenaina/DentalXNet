@@ -49,6 +49,8 @@ def test_analyze_endpoint_rtdetr():
     assert data["width"] == 640
     assert data["height"] == 480
     assert "detections" in data
+    assert "image_with_boxes" in data
+    assert "image_with_heatmap" in data
     
     # Assert mock detections are returned as expected
     if data["mode"] == "mock":
@@ -76,6 +78,8 @@ def test_analyze_endpoint_yolov8():
     assert data["width"] == 800
     assert data["height"] == 600
     assert data["model_type"] == "yolov8"
+    assert "image_with_boxes" in data
+    assert "image_with_heatmap" in data
     print(f"[OK] Model compare endpoint validation passed. Detections count: {len(data['detections'])}")
 
 if __name__ == "__main__":

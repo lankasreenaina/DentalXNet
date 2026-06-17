@@ -56,6 +56,22 @@ export default function Home() {
   
   // Model controls
   const [confidenceThreshold, setConfidenceThreshold] = useState(0.25);
+  const [sliderVal, setSliderVal] = useState(0.25);
+
+  // Debounce the confidence slider to prevent flooding the CPU backend on drag
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setConfidenceThreshold(sliderVal);
+    }, 250);
+    return () => clearTimeout(handler);
+  }, [sliderVal]);
+
+  // Re-run backend analysis when confidence threshold changes for uploaded file
+  useEffect(() => {
+    if (selectedFile) {
+      handleAnalyze(selectedFile, null);
+    }
+  }, [confidenceThreshold]);
   const [visibleClasses, setVisibleClasses] = useState({
     "Crown": true,
     "Dental Fillings": true,
@@ -203,7 +219,7 @@ export default function Home() {
       }
       
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      response = await fetch(`${baseUrl}/analyze?model=rtdetr`, {
+      response = await fetch(`${baseUrl}/analyze?model=rtdetr&conf=${confidenceThreshold}`, {
         method: "POST",
         body: formData,
       });
@@ -225,7 +241,7 @@ export default function Home() {
           yoloFormData.append("file", sampleFile);
         }
         
-        const yoloResponse = await fetch(`${baseUrl}/analyze?model=yolov8`, {
+        const yoloResponse = await fetch(`${baseUrl}/analyze?model=yolov8&conf=${confidenceThreshold}`, {
           method: "POST",
           body: yoloFormData,
         });
@@ -265,6 +281,9 @@ export default function Home() {
       setSelectedImage(reader.result);
       setAnalysisResult(null);
       setComparisonResult(null);
+      
+      // Automatically trigger backend analysis once image is loaded locally
+      handleAnalyze(file);
     };
     reader.readAsDataURL(file);
   };
@@ -369,35 +388,61 @@ export default function Home() {
 
   // Re-render Canvas when parameters change
   useEffect(() => {
-    if (analysisResult && rtdetrCanvasRef.current && rtdetrImgRef.current) {
-      const img = rtdetrImgRef.current;
-      const canvas = rtdetrCanvasRef.current;
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      drawBoxes(canvas, analysisResult.detections, canvas.width, canvas.height, activeBox);
-      
-      if (showHeatmap && rtdetrHeatmapRef.current) {
-        const hCanvas = rtdetrHeatmapRef.current;
-        hCanvas.width = img.naturalWidth;
-        hCanvas.height = img.naturalHeight;
-        drawHeatmap(hCanvas, analysisResult.detections, hCanvas.width, hCanvas.height);
+    const handleDraw = () => {
+      if (analysisResult && rtdetrCanvasRef.current && rtdetrImgRef.current) {
+        const img = rtdetrImgRef.current;
+        const canvas = rtdetrCanvasRef.current;
+        if (img.naturalWidth > 0) {
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          drawBoxes(canvas, analysisResult.detections, canvas.width, canvas.height, activeBox);
+          
+          if (showHeatmap && rtdetrHeatmapRef.current) {
+            const hCanvas = rtdetrHeatmapRef.current;
+            hCanvas.width = img.naturalWidth;
+            hCanvas.height = img.naturalHeight;
+            drawHeatmap(hCanvas, analysisResult.detections, hCanvas.width, hCanvas.height);
+          }
+        }
+      }
+    };
+
+    const img = rtdetrImgRef.current;
+    if (img) {
+      if (img.complete) {
+        handleDraw();
+      } else {
+        img.onload = handleDraw;
       }
     }
   }, [analysisResult, confidenceThreshold, visibleClasses, activeBox, showHeatmap, heatmapBlur, heatmapIntensity]);
 
   useEffect(() => {
-    if (comparisonResult && yoloCanvasRef.current && yoloImgRef.current) {
-      const img = yoloImgRef.current;
-      const canvas = yoloCanvasRef.current;
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      drawBoxes(canvas, comparisonResult.detections, canvas.width, canvas.height, null);
-      
-      if (showHeatmap && yoloHeatmapRef.current) {
-        const hCanvas = yoloHeatmapRef.current;
-        hCanvas.width = img.naturalWidth;
-        hCanvas.height = img.naturalHeight;
-        drawHeatmap(hCanvas, comparisonResult.detections, hCanvas.width, hCanvas.height);
+    const handleDraw = () => {
+      if (comparisonResult && yoloCanvasRef.current && yoloImgRef.current) {
+        const img = yoloImgRef.current;
+        const canvas = yoloCanvasRef.current;
+        if (img.naturalWidth > 0) {
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          drawBoxes(canvas, comparisonResult.detections, canvas.width, canvas.height, null);
+          
+          if (showHeatmap && yoloHeatmapRef.current) {
+            const hCanvas = yoloHeatmapRef.current;
+            hCanvas.width = img.naturalWidth;
+            hCanvas.height = img.naturalHeight;
+            drawHeatmap(hCanvas, comparisonResult.detections, hCanvas.width, hCanvas.height);
+          }
+        }
+      }
+    };
+
+    const img = yoloImgRef.current;
+    if (img) {
+      if (img.complete) {
+        handleDraw();
+      } else {
+        img.onload = handleDraw;
       }
     }
   }, [comparisonResult, confidenceThreshold, visibleClasses, showHeatmap, heatmapBlur, heatmapIntensity]);
@@ -434,6 +479,42 @@ export default function Home() {
     });
     
     setActiveBox(foundBox);
+  };
+
+  const displayImageSrc = () => {
+    if (analysisResult) {
+      if (showHeatmap && analysisResult.image_with_heatmap) {
+        return analysisResult.image_with_heatmap;
+      }
+      if (!showHeatmap && analysisResult.image_with_boxes) {
+        return analysisResult.image_with_boxes;
+      }
+    }
+    return selectedImage;
+  };
+
+  const yoloDisplayImageSrc = () => {
+    if (comparisonResult) {
+      if (showHeatmap && comparisonResult.image_with_heatmap) {
+        return comparisonResult.image_with_heatmap;
+      }
+      if (!showHeatmap && comparisonResult.image_with_boxes) {
+        return comparisonResult.image_with_boxes;
+      }
+    }
+    return selectedImage;
+  };
+
+  const rtdetrDisplayImageSrc = () => {
+    if (analysisResult) {
+      if (showHeatmap && analysisResult.image_with_heatmap) {
+        return analysisResult.image_with_heatmap;
+      }
+      if (!showHeatmap && analysisResult.image_with_boxes) {
+        return analysisResult.image_with_boxes;
+      }
+    }
+    return selectedImage;
   };
 
   // Generate and Trigger browser printing formatted clinical report
@@ -1023,7 +1104,7 @@ export default function Home() {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <label style={{ fontSize: "12px", fontWeight: "bold" }}>Confidence Slider</label>
                   <span style={{ fontSize: "12px", fontFamily: "monospace", color: "var(--accent-cyan)", fontWeight: "bold" }}>
-                    {(confidenceThreshold * 100).toFixed(0)}%
+                    {(sliderVal * 100).toFixed(0)}%
                   </span>
                 </div>
                 <input 
@@ -1031,8 +1112,8 @@ export default function Home() {
                   min="0.1" 
                   max="0.9" 
                   step="0.05" 
-                  value={confidenceThreshold} 
-                  onChange={e => setConfidenceThreshold(parseFloat(e.target.value))}
+                  value={sliderVal} 
+                  onChange={e => setSliderVal(parseFloat(e.target.value))}
                   style={{ width: "100%", accentColor: "var(--accent-cyan)" }}
                 />
               </div>
@@ -1212,13 +1293,13 @@ export default function Home() {
                   <div style={{ position: "relative", maxWidth: "100%", maxHeight: "100%", display: "inline-block" }}>
                     <img 
                       ref={rtdetrImgRef}
-                      src={selectedImage} 
+                      src={displayImageSrc()} 
                       alt="Dental OPG" 
                       style={{ display: "block", maxWidth: "100%", maxHeight: "70vh", objectFit: "contain", borderRadius: "8px" }}
                     />
                     
                     {/* Bounding Box canvas overlay */}
-                    {analysisResult && (
+                    {analysisResult && !analysisResult.image_with_boxes && (
                       <canvas 
                         ref={rtdetrCanvasRef}
                         onClick={(e) => handleCanvasClick(e, rtdetrCanvasRef, analysisResult)}
@@ -1229,7 +1310,7 @@ export default function Home() {
                     )}
 
                     {/* Client-Side Heatmap overlay */}
-                    {analysisResult && showHeatmap && (
+                    {analysisResult && showHeatmap && !analysisResult.image_with_heatmap && (
                       <canvas 
                         ref={rtdetrHeatmapRef}
                         style={{
@@ -1258,7 +1339,7 @@ export default function Home() {
                       <div style={{ position: "relative", width: "100%", display: "inline-block" }}>
                         <img 
                           ref={yoloImgRef}
-                          src={selectedImage} 
+                          src={yoloDisplayImageSrc()} 
                           alt="YOLO OPG" 
                           style={{ display: "block", width: "100%", maxHeight: "60vh", objectFit: "contain", borderRadius: "8px" }}
                         />
@@ -1267,14 +1348,14 @@ export default function Home() {
                             <div className="spinner" style={{ width: "24px", height: "24px" }}></div>
                           </div>
                         ) : (
-                          comparisonResult && (
+                          comparisonResult && !comparisonResult.image_with_boxes && (
                             <canvas 
                               ref={yoloCanvasRef}
                               style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", zIndex: 10 }}
                             />
                           )
                         )}
-                        {comparisonResult && showHeatmap && (
+                        {comparisonResult && showHeatmap && !comparisonResult.image_with_heatmap && (
                           <canvas 
                             ref={yoloHeatmapRef}
                             style={{
@@ -1298,18 +1379,19 @@ export default function Home() {
                       <div style={{ fontSize: "12px", color: "var(--accent-cyan)", fontWeight: "bold", textTransform: "uppercase" }}>RT-DETR Proposed</div>
                       <div style={{ position: "relative", width: "100%", display: "inline-block" }}>
                         <img 
-                          src={selectedImage} 
+                          ref={rtdetrImgRef}
+                          src={rtdetrDisplayImageSrc()} 
                           alt="RTDETR OPG" 
                           style={{ display: "block", width: "100%", maxHeight: "60vh", objectFit: "contain", borderRadius: "8px" }}
                         />
-                        {analysisResult && (
+                        {analysisResult && !analysisResult.image_with_boxes && (
                           <canvas 
                             ref={rtdetrCanvasRef}
                             onClick={(e) => handleCanvasClick(e, rtdetrCanvasRef, analysisResult)}
                             style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", cursor: "crosshair", zIndex: 10 }}
                           />
                         )}
-                        {analysisResult && showHeatmap && (
+                        {analysisResult && showHeatmap && !analysisResult.image_with_heatmap && (
                           <canvas 
                             ref={rtdetrHeatmapRef}
                             style={{
